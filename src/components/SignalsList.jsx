@@ -50,73 +50,85 @@ const SignalsList = ({ timeFrame }) => {
 
   return (
     <Box sx={{ height: "100%" }}>
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ color: "#4ADE80", mb: 1 }}>
-            The Good
-          </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            4 cycles are at the bottom
-          </Typography>
-        </Box>
-
-        <Box>
-          <Typography variant="h6" sx={{ color: "#EF4444", mb: 1 }}>
-            The Bad
-          </Typography>
-          <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            3-Day Cycle is falling, can indicate further downside
-          </Typography>
-        </Box>
-      </Box>
-
-      <Typography variant="h6" sx={{ mb: 3 }}>
-        Latest Signals
+      <Typography
+        variant="h5"
+        sx={{
+          mb: 3,
+          fontWeight: 600,
+          fontSize: "1.5rem",
+        }}
+      >
+        Latest Buy Signals
       </Typography>
 
       <Box sx={{ mb: 4 }}>
-        {signals.map((signal) => (
-          <Paper
-            key={signal.symbol}
+        {[1, 2, 3].map((_, index) => (
+          <Box
+            key={index}
             sx={{
               mb: 2,
               p: 2,
-              backgroundColor: "rgba(255, 255, 255, 0.05)",
+              backgroundColor: "rgba(17, 17, 17, 0.6)",
+              borderRadius: 2,
               border: "1px solid rgba(255, 255, 255, 0.1)",
-              "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.08)",
-              },
             }}
           >
             <Box
               sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}
             >
-              <Typography variant="h6">${signal.symbol}</Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                {signal.time}
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography variant="h6" sx={{ color: "#fff" }}>
+                  $SOL | $243.80
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "rgba(255, 255, 255, 0.5)",
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  15m ago
+                </Typography>
+              </Box>
             </Box>
             <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
               <Chip
-                label={`Risk ${signal.risk}/10`}
+                label="Risk 4/10"
                 size="small"
                 sx={{
-                  backgroundColor: getRiskColor(signal.risk),
+                  backgroundColor: "#F59E0B",
                   color: "white",
+                  height: "24px",
+                  fontSize: "0.75rem",
                 }}
               />
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                MCap: {signal.marketCap}
+                Market Cap: $1.2B
               </Typography>
             </Box>
-          </Paper>
+          </Box>
         ))}
       </Box>
 
-      <Box sx={{ mt: "auto" }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Premium Signals
-        </Typography>
+      <Box
+        sx={{
+          mt: "auto",
+          backgroundColor: "rgba(17, 17, 17, 0.6)",
+          borderRadius: 2,
+          p: 3,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+          <Typography variant="h6">Premium Signals</Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Typography variant="h4" sx={{ fontWeight: 600 }}>
+              $49
+            </Typography>
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              /month
+            </Typography>
+          </Box>
+        </Box>
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>
           Get early access to all buy signals and advanced analytics
         </Typography>
@@ -126,10 +138,12 @@ const SignalsList = ({ timeFrame }) => {
           size="large"
           sx={{
             py: 1.5,
-            backgroundColor: "#3B82F6",
+            backgroundColor: "#2563EB",
             "&:hover": {
-              backgroundColor: "#2563EB",
+              backgroundColor: "#1D4ED8",
             },
+            textTransform: "none",
+            fontWeight: 600,
           }}
         >
           Subscribe Now

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { ThemeProvider, Box, Typography } from "@mui/material";
+import { ThemeProvider, Box, Button, ButtonGroup } from "@mui/material";
+import Navbar from "./components/Navbar";
 import BubbleChart from "./components/BubbleChart";
 import SignalsList from "./components/SignalsList";
-import TimeFrameSelector from "./components/TimeFrameSelector";
 import { theme } from "./theme";
 import "@fontsource/poppins/300.css";
 import "@fontsource/poppins/400.css";
@@ -16,6 +16,10 @@ function App() {
   const [marketCapRange, setMarketCapRange] = useState(100);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const handleMarketCapRangeChange = (range) => {
+    setMarketCapRange(range);
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <Box
@@ -24,123 +28,95 @@ function App() {
           width: "100vw",
           backgroundColor: "#000000",
           color: "text.primary",
-          p: 0,
-          m: 0,
-          overflowX: "hidden",
         }}
       >
-        <Box
-          sx={{
-            minHeight: "100vh",
-            display: "flex",
-            flexDirection: { xs: "column", lg: "row" },
-          }}
-        >
-          {/* Main Content */}
+        <Navbar onMarketCapRangeChange={handleMarketCapRangeChange} />
+
+        <Box sx={{ display: "flex", p: 2, gap: 2 }}>
+          {/* Strategy Selector */}
           <Box
             sx={{
-              flex: 1,
-              p: { xs: 2, sm: 3 },
-              order: { xs: 2, lg: 1 },
+              display: "flex",
+              gap: 1,
+              alignItems: "center",
+              color: "rgba(255, 255, 255, 0.7)",
             }}
           >
-            {/* Header */}
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: { xs: "column", sm: "row" },
-                justifyContent: "space-between",
-                alignItems: { xs: "stretch", sm: "center" },
-                gap: 2,
-                mb: 3,
-              }}
-            >
-              <Typography
-                variant="h4"
+            Strategies:
+            <ButtonGroup>
+              <Button
                 sx={{
-                  fontWeight: 700,
-                  fontSize: { xs: "1.5rem", sm: "2rem" },
+                  backgroundColor: "#DC2626",
+                  color: "white",
+                  "&:hover": { backgroundColor: "#B91C1C" },
                 }}
               >
-                Crypto Analytics
-              </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <TimeFrameSelector
-                  timeFrame={timeFrame}
-                  onTimeFrameChange={setTimeFrame}
-                  marketCapRange={marketCapRange}
-                  onMarketCapChange={setMarketCapRange}
-                />
-              </Box>
-            </Box>
-
-            {/* Search Bar */}
-            <Box
-              sx={{
-                mb: 3,
-                width: "100%",
-                backgroundColor: "rgba(255, 255, 255, 0.05)",
-                borderRadius: 2,
-                p: 1,
-              }}
-            >
-              <input
-                type="text"
-                placeholder="Search cryptocurrencies..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: "100%",
-                  background: "none",
-                  border: "none",
+                Short-Term
+              </Button>
+              <Button
+                sx={{
+                  backgroundColor: "#059669",
                   color: "white",
-                  fontSize: "16px",
-                  padding: "8px",
-                  outline: "none",
+                  "&:hover": { backgroundColor: "#047857" },
                 }}
-              />
-            </Box>
+              >
+                Long-Term
+              </Button>
+            </ButtonGroup>
+          </Box>
 
-            {/* Chart */}
+          {/* Token Selector */}
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              alignItems: "center",
+              color: "rgba(255, 255, 255, 0.7)",
+            }}
+          >
+            Token:
+            <ButtonGroup>
+              <Button
+                sx={{
+                  backgroundColor: "#DC2626",
+                  color: "white",
+                  "&:hover": { backgroundColor: "#B91C1C" },
+                }}
+              >
+                AI Agent
+              </Button>
+              <Button
+                sx={{
+                  backgroundColor: "#059669",
+                  color: "white",
+                  "&:hover": { backgroundColor: "#047857" },
+                }}
+              >
+                Binance
+              </Button>
+              <Button
+                sx={{
+                  backgroundColor: "#DC2626",
+                  color: "white",
+                  "&:hover": { backgroundColor: "#B91C1C" },
+                }}
+              >
+                Bybit
+              </Button>
+            </ButtonGroup>
+          </Box>
+        </Box>
+
+        {/* Rest of your app content */}
+        <Box sx={{ display: "flex", height: "calc(100vh - 140px)" }}>
+          <Box sx={{ flex: 1, p: 2 }}>
             <BubbleChart
               timeFrame={timeFrame}
               marketCapRange={marketCapRange}
               searchQuery={searchQuery}
             />
           </Box>
-
-          {/* Right Sidebar */}
-          <Box
-            sx={{
-              width: { xs: "100%", lg: 380 },
-              backgroundColor: "#111",
-              borderLeft: {
-                xs: "none",
-                lg: "1px solid rgba(255, 255, 255, 0.1)",
-              },
-              borderTop: {
-                xs: "1px solid rgba(255, 255, 255, 0.1)",
-                lg: "none",
-              },
-              p: { xs: 2, sm: 3 },
-              overflowY: "auto",
-              height: { xs: "auto", lg: "100vh" },
-              order: { xs: 1, lg: 2 },
-              "&::-webkit-scrollbar": {
-                width: "8px",
-              },
-              "&::-webkit-scrollbar-track": {
-                background: "rgba(255, 255, 255, 0.05)",
-              },
-              "&::-webkit-scrollbar-thumb": {
-                background: "rgba(255, 255, 255, 0.1)",
-                borderRadius: "4px",
-              },
-              "&::-webkit-scrollbar-thumb:hover": {
-                background: "rgba(255, 255, 255, 0.2)",
-              },
-            }}
-          >
+          <Box sx={{ width: 380, backgroundColor: "#111" }}>
             <SignalsList timeFrame={timeFrame} />
           </Box>
         </Box>
