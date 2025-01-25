@@ -1,14 +1,9 @@
-import {
-  Box,
-  Button,
-  ButtonGroup,
-  InputBase,
-  Menu,
-  MenuItem,
-} from "@mui/material";
+import { Box, Button, InputBase, Menu, MenuItem } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { FaSearch, FaInfoCircle, FaChevronDown } from "react-icons/fa";
+import { FaSearch, FaChevronDown, FaTelegram } from "react-icons/fa";
 import { useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 const NavContainer = styled(Box)(({ theme }) => ({
   display: "flex",
@@ -17,6 +12,11 @@ const NavContainer = styled(Box)(({ theme }) => ({
   padding: "12px 24px",
   backgroundColor: "#111",
   borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+  width: "calc(100% - 380px)",
+  position: "fixed",
+  top: 0,
+  left: 0,
+  zIndex: 1100,
 }));
 
 const SearchBar = styled(Box)(({ theme }) => ({
@@ -46,9 +46,24 @@ const Logo = styled(Box)(({ theme }) => ({
   },
 }));
 
+const WalletButton = styled(WalletMultiButton)(({ theme }) => ({
+  backgroundColor: "#111",
+  border: "1px solid rgba(255, 255, 255, 0.1)",
+  color: "white",
+  padding: "8px 16px",
+  borderRadius: "8px",
+  "&:hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+  },
+  "& .wallet-adapter-button-trigger": {
+    background: "none",
+  },
+}));
+
 const Navbar = ({ onMarketCapRangeChange }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedRange, setSelectedRange] = useState(100);
+  const { publicKey, connected } = useWallet();
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -63,34 +78,36 @@ const Navbar = ({ onMarketCapRangeChange }) => {
   };
 
   return (
-    <NavContainer>
+    <NavContainer sx={{ backgroundColor: "#19202F" }}>
       <Logo>
         <img
           src="https://i.ibb.co/znbC3SV/Group.jpg"
           alt="Logo"
-          className="rounded-full h-10 w-10"
+          style={{ width: "32px", height: "32px", borderRadius: "50%" }}
         />
-        <span>Coinchart.fun</span>
+        <span style={{ color: "white", fontSize: "20px", fontWeight: 600 }}>
+          Coinchart.fun
+        </span>
       </Logo>
 
-      <SearchBar>
-        <FaSearch
-          style={{ color: "rgba(255, 255, 255, 0.5)", marginRight: "8px" }}
-        />
-        <InputBase
-          placeholder="Search Crypto Currencies"
-          sx={{
-            color: "white",
-            width: "100%",
-            "& input::placeholder": {
-              color: "rgba(255, 255, 255, 0.5)",
-              opacity: 1,
-            },
-          }}
-        />
-      </SearchBar>
-
       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <SearchBar>
+          <FaSearch
+            style={{ color: "rgba(255, 255, 255, 0.5)", marginRight: "8px" }}
+          />
+          <InputBase
+            placeholder="Search Crypto Currencies"
+            sx={{
+              color: "white",
+              width: "100%",
+              "& input::placeholder": {
+                color: "rgba(255, 255, 255, 0.5)",
+                opacity: 1,
+              },
+            }}
+          />
+        </SearchBar>
+
         <Button
           onClick={handleClick}
           endIcon={<FaChevronDown />}
@@ -105,6 +122,7 @@ const Navbar = ({ onMarketCapRangeChange }) => {
         >
           Top {selectedRange}
         </Button>
+
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
@@ -130,23 +148,11 @@ const Navbar = ({ onMarketCapRangeChange }) => {
         </Menu>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <span style={{ color: "white" }}>Need API Access?</span>
-          <FaInfoCircle style={{ color: "#3B82F6" }} />
+          <span style={{ color: "white", fontSize: "14px", fontWeight: "700" }}>
+            Need API Access?
+          </span>
+          <FaTelegram style={{ color: "#3B82F6" }} />
         </Box>
-
-        <Button
-          variant="contained"
-          sx={{
-            backgroundColor: "#111",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            color: "white",
-            "&:hover": {
-              backgroundColor: "rgba(255, 255, 255, 0.05)",
-            },
-          }}
-        >
-          Premium
-        </Button>
       </Box>
     </NavContainer>
   );
