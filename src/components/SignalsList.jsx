@@ -46,16 +46,17 @@ const WalletButton = styled(WalletMultiButton)(({ theme }) => ({
 }));
 
 const SidebarContainer = styled(Box)(({ theme }) => ({
-  position: "fixed",
-  right: 0,
-  top: 0,
-  width: "380px",
-  height: "100vh",
-  backgroundColor: "#000",
-  borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
-  overflowY: "auto",
   display: "flex",
   flexDirection: "column",
+  backgroundColor: "#000",
+  [theme.breakpoints.up("md")]: {
+    position: "fixed",
+    right: 0,
+    top: 0,
+    width: "380px",
+    height: "100vh",
+    borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
+  },
 }));
 
 const TopSection = styled(Box)(({ theme }) => ({
