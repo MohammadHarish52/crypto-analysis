@@ -362,7 +362,7 @@ function App() {
             sx={{
               display: "flex",
               flexDirection: { xs: "column", md: "row" }, // Stack on mobile, row on desktop
-              p: 2,
+              p: { xs: 0, md: 2 },
               gap: 4,
             }}
           >

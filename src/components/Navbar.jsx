@@ -46,7 +46,7 @@ const SearchBar = styled(Box)(({ theme }) => ({
     width: "200px",
   },
   [theme.breakpoints.down("sm")]: {
-    display: "none",
+    width: "100%", // Full width for mobile
   },
 }));
 
@@ -114,7 +114,7 @@ const Navbar = ({ onMarketCapRangeChange, onToggleSidebar }) => {
             <IconButton
               color="inherit"
               onClick={toggleMobileMenu}
-              sx={{ mr: 1 }}
+              sx={{ mr: 1, color: "white" }} // Ensure icon is white
             >
               <FaBars />
             </IconButton>
@@ -154,28 +154,48 @@ const Navbar = ({ onMarketCapRangeChange, onToggleSidebar }) => {
         </Box>
 
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <SearchBar>
-            <FaSearch
-              style={{ color: "rgba(255, 255, 255, 0.5)", marginRight: "8px" }}
-            />
-            <InputBase
-              placeholder="Search Crypto Currencies"
-              sx={{
-                color: "white",
-                width: "100%",
-                "& input::placeholder": {
-                  color: "rgba(255, 255, 255, 0.5)",
-                  opacity: 1,
-                },
-              }}
-            />
-          </SearchBar>
+          {/* Search Bar for Mobile */}
+          {isMobile && (
+            <SearchBar>
+              <FaSearch
+                style={{ color: "white", marginRight: "8px" }} // Ensure icon is white
+              />
+              <InputBase
+                placeholder="Search Crypto Currencies"
+                sx={{
+                  color: "white",
+                  width: "100%",
+                  "& input::placeholder": {
+                    color: "rgba(255, 255, 255, 0.5)",
+                    opacity: 1,
+                  },
+                }}
+              />
+            </SearchBar>
+          )}
 
           {!isMobile && (
             <>
+              <SearchBar>
+                <FaSearch
+                  style={{ color: "white", marginRight: "8px" }} // Ensure icon is white
+                />
+                <InputBase
+                  placeholder="Search Crypto Currencies"
+                  sx={{
+                    color: "white",
+                    width: "100%",
+                    "& input::placeholder": {
+                      color: "rgba(255, 255, 255, 0.5)",
+                      opacity: 1,
+                    },
+                  }}
+                />
+              </SearchBar>
+
               <Button
                 onClick={handleClick}
-                endIcon={<FaChevronDown />}
+                endIcon={<FaChevronDown style={{ color: "white" }} />} // Ensure icon is white
                 sx={{
                   borderColor: "rgba(255, 255, 255, 0.1)",
                   color: "white",
@@ -198,19 +218,10 @@ const Navbar = ({ onMarketCapRangeChange, onToggleSidebar }) => {
                 >
                   Need API Access?
                 </span>
-                <FaTelegram style={{ color: "#3B82F6" }} />
+                <FaTelegram style={{ color: "white" }} />{" "}
+                {/* Ensure icon is white */}
               </Box>
             </>
-          )}
-
-          {isMobile && (
-            <IconButton
-              color="inherit"
-              onClick={() => onToggleSidebar()}
-              sx={{ ml: 1 }}
-            >
-              <FaSearch />
-            </IconButton>
           )}
         </Box>
       </NavContainer>
@@ -234,7 +245,7 @@ const Navbar = ({ onMarketCapRangeChange, onToggleSidebar }) => {
           <Button
             fullWidth
             onClick={handleClick}
-            endIcon={<FaChevronDown />}
+            endIcon={<FaChevronDown style={{ color: "white" }} />} // Ensure icon is white
             sx={{
               borderColor: "rgba(255, 255, 255, 0.1)",
               color: "white",

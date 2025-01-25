@@ -3,18 +3,22 @@ import { Chart } from "chart.js/auto";
 import axios from "axios";
 import { Box, Paper } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import TokenModal from "./TokenModal";
 
 const ChartContainer = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(2),
   backgroundColor: "#000000",
   borderRadius: theme.spacing(2),
-  height: "600px",
-  width: "100%",
+  minHeight: "600px",
+  maxWidth: "100%",
+  boxSizing: "border-box",
   boxShadow: "none",
   position: "relative",
-  overflow: "hidden",
+  overflowX: "hidden",
+  overflowY: "auto",
+  margin: "0 auto",
   [theme.breakpoints.down("sm")]: {
-    height: "400px",
+    minHeight: "400px",
     padding: theme.spacing(1),
   },
 }));
@@ -24,6 +28,9 @@ const BubbleChart = ({ marketCapRange, searchQuery }) => {
   const chartInstance = useRef(null);
   const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(true);
+  const logoRefs = useRef(new Map());
+  const [selectedToken, setSelectedToken] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchTokens = async () => {
@@ -35,22 +42,21 @@ const BubbleChart = ({ marketCapRange, searchQuery }) => {
 
         const processedTokens = response.data
           .map((token) => ({
+            id: token.id,
+            name: token.name,
             symbol: token.symbol.toUpperCase(),
             image: token.image,
             price_change_percentage_24h: token.price_change_percentage_24h || 0,
-            market_cap_change_percentage_24h:
-              token.market_cap_change_percentage_24h || 0,
+            market_cap: token.market_cap || 0,
+            rank: token.market_cap_rank,
           }))
           .filter((token) =>
-            token.symbol
-              .toLowerCase()
-              .includes(searchQuery?.toLowerCase() || "")
+            token.symbol.toLowerCase().includes(searchQuery.toLowerCase())
           );
 
         setTokens(processedTokens);
       } catch (error) {
         console.error("Error fetching tokens:", error);
-        setTokens([]);
       } finally {
         setLoading(false);
       }
@@ -60,30 +66,38 @@ const BubbleChart = ({ marketCapRange, searchQuery }) => {
   }, [marketCapRange, searchQuery]);
 
   useEffect(() => {
-    if (!chartRef.current || loading || !tokens.length) return;
+    if (!chartRef.current || loading || tokens.length === 0) return;
 
     const ctx = chartRef.current.getContext("2d");
-    if (!ctx) return;
 
     if (chartInstance.current) {
       chartInstance.current.destroy();
     }
 
-    const bubbleData = tokens.map((token, index) => {
-      // Calculate size based on market cap change
-      const change = Math.abs(token.market_cap_change_percentage_24h);
-      const size = Math.max(30, Math.min(60, change)); // Size between 30 and 60
+    tokens.forEach((token) => {
+      const img = new Image();
+      img.src = token.image;
+      logoRefs.current.set(token.symbol, img);
+    });
 
-      // Create grid-like layout
-      const columns = Math.ceil(Math.sqrt(tokens.length));
-      const row = Math.floor(index / columns);
-      const col = index % columns;
-      const spacing = 80;
+    const COLUMNS = 4;
+    const containerWidth = chartRef.current.width;
+    const spacing = containerWidth / COLUMNS;
+    const rows = Math.ceil(tokens.length / COLUMNS);
+
+    chartRef.current.height = rows * spacing + spacing;
+
+    const bubbleData = tokens.map((token, index) => {
+      const column = index % COLUMNS;
+      const row = Math.floor(index / COLUMNS);
 
       return {
-        x: col * spacing,
-        y: row * spacing,
-        r: size / 2,
+        x: column * spacing + spacing / 2,
+        y: row * spacing + spacing / 2,
+        r: Math.min(
+          Math.abs(token.price_change_percentage_24h) * 1.5 + 25,
+          spacing / 3
+        ),
         token,
       };
     });
@@ -94,68 +108,148 @@ const BubbleChart = ({ marketCapRange, searchQuery }) => {
         datasets: [
           {
             data: bubbleData,
-            backgroundColor: bubbleData.map((item) =>
-              item.token.price_change_percentage_24h > 0
-                ? "rgba(52, 211, 153, 0.8)"
-                : "rgba(239, 68, 68, 0.8)"
+            backgroundColor: bubbleData.map((bubble) =>
+              bubble.token.price_change_percentage_24h >= 0
+                ? "rgba(0, 255, 0, 0.3)"
+                : "rgba(255, 0, 0, 0.3)"
             ),
-            borderWidth: 0,
+            borderColor: bubbleData.map((bubble) =>
+              bubble.token.price_change_percentage_24h >= 0
+                ? "rgba(0, 255, 0, 0.8)"
+                : "rgba(255, 0, 0, 0.8)"
+            ),
+            borderWidth: 2,
+            hoverBackgroundColor: bubbleData.map((bubble) =>
+              bubble.token.price_change_percentage_24h >= 0
+                ? "rgba(0, 255, 0, 0.4)"
+                : "rgba(255, 0, 0, 0.4)"
+            ),
+            hoverBorderColor: bubbleData.map((bubble) =>
+              bubble.token.price_change_percentage_24h >= 0
+                ? "rgba(0, 255, 0, 1)"
+                : "rgba(255, 0, 0, 1)"
+            ),
+            hoverBorderWidth: 3,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          tooltip: { enabled: false },
-          legend: { display: false },
+        layout: {
+          padding: {
+            top: spacing / 4,
+            bottom: spacing / 4,
+          },
         },
         scales: {
-          x: { display: false },
-          y: { display: false, reverse: true },
+          x: {
+            display: false,
+            min: 0,
+            max: containerWidth,
+            ticks: {
+              stepSize: spacing,
+            },
+          },
+          y: {
+            display: false,
+            min: 0,
+            max: rows * spacing,
+            ticks: {
+              stepSize: spacing,
+            },
+          },
+        },
+        plugins: {
+          legend: {
+            display: false,
+          },
+          tooltip: {
+            enabled: false,
+          },
         },
         animation: false,
-        layout: {
-          padding: 40,
+        onHover: (event, elements) => {
+          const canvas = event.chart.canvas;
+          canvas.style.cursor = elements.length ? "pointer" : "default";
+        },
+        onClick: (event, elements) => {
+          if (elements.length > 0) {
+            const index = elements[0].index;
+            const token = bubbleData[index].token;
+            setSelectedToken(token);
+            setModalOpen(true);
+          }
         },
       },
     });
 
-    // Draw logos and percentages
-    bubbleData.forEach((bubble) => {
-      const x = chartInstance.current.scales.x.getPixelForValue(bubble.x);
-      const y = chartInstance.current.scales.y.getPixelForValue(bubble.y);
+    const drawLogoAndPercentage = () => {
+      const ctx = chartInstance.current.ctx;
+      bubbleData.forEach((bubble) => {
+        const x = chartInstance.current.scales.x.getPixelForValue(bubble.x);
+        const y = chartInstance.current.scales.y.getPixelForValue(bubble.y);
+        const logo = logoRefs.current.get(bubble.token.symbol);
 
-      // Draw logo
-      const img = new Image();
-      img.src = bubble.token.image;
-      img.onload = () => {
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(x, y, 15, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.drawImage(img, x - 15, y - 15, 30, 30);
-        ctx.restore();
+        if (logo) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(x, y, 15, 0, Math.PI * 2);
+          ctx.clip();
+          ctx.drawImage(logo, x - 15, y - 15, 30, 30);
+          ctx.restore();
 
-        // Draw percentage
-        ctx.save();
-        ctx.font = "bold 12px Arial";
-        ctx.fillStyle = "white";
-        ctx.textAlign = "center";
-        ctx.fillText(
-          `${bubble.token.price_change_percentage_24h.toFixed(1)}%`,
-          x,
-          y + bubble.r + 15
-        );
-        ctx.restore();
-      };
-    });
+          const percentage = `${bubble.token.price_change_percentage_24h.toFixed(
+            1
+          )}%`;
+          ctx.save();
+          ctx.font = "bold 12px Arial";
+
+          const textWidth = ctx.measureText(percentage).width;
+
+          ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+          ctx.fillRect(
+            x - textWidth / 2 - 4,
+            y + bubble.r + 5,
+            textWidth + 8,
+            20
+          );
+
+          ctx.fillStyle = "white";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(percentage, x, y + bubble.r + 15);
+          ctx.restore();
+        }
+      });
+    };
+
+    const originalRender = chartInstance.current.draw;
+    chartInstance.current.draw = function () {
+      originalRender.apply(this, arguments);
+      drawLogoAndPercentage();
+    };
+
+    chartInstance.current.update();
+
+    return () => {
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+      }
+    };
   }, [tokens, loading]);
 
   return (
-    <ChartContainer>
-      <canvas ref={chartRef} />
-    </ChartContainer>
+    <Box sx={{ width: "100%", overflow: "hidden" }}>
+      <ChartContainer>
+        <canvas ref={chartRef} />
+      </ChartContainer>
+      <TokenModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        token={selectedToken}
+      />
+    </Box>
   );
 };
 
