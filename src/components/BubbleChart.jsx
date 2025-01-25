@@ -177,6 +177,7 @@ const BubbleChart = ({ marketCapRange, searchQuery }) => {
           if (elements.length > 0) {
             const index = elements[0].index;
             const token = bubbleData[index].token;
+            console.log("Bubble Clicked:", token);
             setSelectedToken(token);
             setModalOpen(true);
           }

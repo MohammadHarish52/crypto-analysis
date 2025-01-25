@@ -31,11 +31,13 @@ const TokenPriceChart = ({ tokenId, timeFrame }) => {
   useEffect(() => {
     const fetchPriceData = async () => {
       if (!tokenId) return;
+
+      console.log("Chart Props:", { tokenId, timeFrame }); // Log chart props
+
       setLoading(true);
       setError(null);
 
       try {
-        // Get days based on timeFrame
         const days = {
           hour: 1,
           day: 1,
@@ -47,6 +49,8 @@ const TokenPriceChart = ({ tokenId, timeFrame }) => {
         const interval =
           days === 1 ? "5minute" : days <= 7 ? "hourly" : "daily";
 
+        console.log("Chart Request Params:", { days, interval }); // Log request params
+
         const response = await axios.get(
           `https://api.coingecko.com/api/v3/coins/${tokenId}/market_chart`,
           {
@@ -57,6 +61,8 @@ const TokenPriceChart = ({ tokenId, timeFrame }) => {
             },
           }
         );
+
+        console.log("Chart API Response:", response.data); // Log chart data
 
         if (chartInstance.current) {
           chartInstance.current.destroy();

@@ -67,13 +67,17 @@ const TokenModal = ({ open, onClose, token }) => {
     const fetchTokenData = async () => {
       if (!token?.id) return;
 
+      console.log("Token clicked:", token);
+
       setLoading(true);
       try {
         const response = await axios.get(
           `https://api.coingecko.com/api/v3/coins/${token.id}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`
         );
 
-        setTokenData({
+        console.log("Token API Response:", response.data);
+
+        const processedData = {
           name: response.data.name,
           symbol: response.data.symbol.toUpperCase(),
           image: response.data.image.large,
@@ -100,7 +104,10 @@ const TokenModal = ({ open, onClose, token }) => {
             year: response.data.market_data.price_change_percentage_1y || 0,
           },
           currentPrice: response.data.market_data.current_price.usd,
-        });
+        };
+
+        console.log("Processed Token Data:", processedData);
+        setTokenData(processedData);
       } catch (error) {
         console.error("Error fetching token data:", error);
       } finally {
