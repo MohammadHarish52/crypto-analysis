@@ -133,7 +133,7 @@ const SignalsList = ({ timeFrame }) => {
 
         {/* Signals Cards */}
         <Box sx={{ mb: 4 }}>
-          {[1, 2, 3].map((_, index) => (
+          {signals.map((signal, index) => (
             <Box
               key={index}
               sx={{
@@ -156,7 +156,7 @@ const SignalsList = ({ timeFrame }) => {
                     fontWeight: 600,
                   }}
                 >
-                  $SOL
+                  ${signal.symbol}
                 </Typography>
                 <Typography
                   variant="caption"
@@ -164,7 +164,7 @@ const SignalsList = ({ timeFrame }) => {
                     color: "rgba(255, 255, 255, 0.7)",
                   }}
                 >
-                  15m ago
+                  {signal.time}
                 </Typography>
                 <Typography
                   variant="h5"
@@ -174,7 +174,7 @@ const SignalsList = ({ timeFrame }) => {
                     mt: 1,
                   }}
                 >
-                  $243.80
+                  ${signal.price}
                 </Typography>
                 <Typography
                   variant="body2"
@@ -183,8 +183,8 @@ const SignalsList = ({ timeFrame }) => {
                     mt: 0.5,
                   }}
                 >
-                  Risk: <strong>44/100</strong> Market Cap:{" "}
-                  <strong>$1.2B</strong>
+                  Risk: <strong>{signal.risk}/100</strong> Market Cap:{" "}
+                  <strong>${signal.marketCap}</strong>
                 </Typography>
               </Box>
 
