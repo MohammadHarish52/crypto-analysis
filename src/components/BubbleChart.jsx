@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Chart } from "chart.js/auto";
-import axios from "axios";
 import { Box, Paper } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import TokenModal from "./TokenModal";
+import { coinGeckoService } from "../services/coinGeckoService";
+import { cacheService } from "../services/cacheService";
 
 const ChartContainer = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(2),
@@ -36,25 +37,16 @@ const BubbleChart = ({ marketCapRange, searchQuery }) => {
     const fetchTokens = async () => {
       setLoading(true);
       try {
-        const response = await axios.get(
-          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${marketCapRange}&sparkline=false&price_change_percentage=24h`
-        );
+        const data = await coinGeckoService.getMarkets({
+          vs_currency: "usd",
+          order: "market_cap_desc",
+          per_page: 100,
+          sparkline: false,
+          price_change_percentage: "24h",
+        });
 
-        const processedTokens = response.data
-          .map((token) => ({
-            id: token.id,
-            name: token.name,
-            symbol: token.symbol.toUpperCase(),
-            image: token.image,
-            price_change_percentage_24h: token.price_change_percentage_24h || 0,
-            market_cap: token.market_cap || 0,
-            rank: token.market_cap_rank,
-          }))
-          .filter((token) =>
-            token.symbol.toLowerCase().includes(searchQuery.toLowerCase())
-          );
-
-        setTokens(processedTokens);
+        setTokens(data);
+        cacheService.set("bubbleData", data);
       } catch (error) {
         console.error("Error fetching tokens:", error);
       } finally {
@@ -63,7 +55,10 @@ const BubbleChart = ({ marketCapRange, searchQuery }) => {
     };
 
     fetchTokens();
-  }, [marketCapRange, searchQuery]);
+
+    const interval = setInterval(fetchTokens, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!chartRef.current || loading || tokens.length === 0) return;
@@ -239,6 +234,11 @@ const BubbleChart = ({ marketCapRange, searchQuery }) => {
       }
     };
   }, [tokens, loading]);
+
+  const handleBubbleClick = (token) => {
+    setSelectedToken(token);
+    setModalOpen(true);
+  };
 
   return (
     <Box sx={{ width: "100%", overflow: "hidden" }}>

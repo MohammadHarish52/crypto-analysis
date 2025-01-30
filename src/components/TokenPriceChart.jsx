@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Chart } from "chart.js/auto";
-import axios from "axios";
 import PropTypes from "prop-types";
 import { styled } from "@mui/material/styles";
 import { Box, CircularProgress } from "@mui/material";
+import { coinGeckoService } from "../services/coinGeckoService";
 
 const ChartContainer = styled("div")({
   width: "100%",
@@ -32,60 +32,65 @@ const TokenPriceChart = ({ tokenId, timeFrame }) => {
     const fetchPriceData = async () => {
       if (!tokenId) return;
 
-      console.log("Chart Props:", { tokenId, timeFrame }); // Log chart props
-
       setLoading(true);
       setError(null);
 
       try {
-        const days = {
-          hour: 1,
-          day: 1,
-          week: 7,
-          month: 30,
-          year: 365,
-        }[timeFrame.toLowerCase()];
+        // Map timeframe to days and interval
+        const timeFrameConfig = {
+          hour: { days: 1, interval: "minutely" },
+          day: { days: 1, interval: "hourly" },
+          week: { days: 7, interval: "hourly" },
+          month: { days: 30, interval: "daily" },
+          year: { days: 365, interval: "daily" },
+        };
 
-        const interval =
-          days === 1 ? "5minute" : days <= 7 ? "hourly" : "daily";
+        const config = timeFrameConfig[timeFrame.toLowerCase()];
+        if (!config) {
+          throw new Error(`Invalid timeframe: ${timeFrame}`);
+        }
 
-        console.log("Chart Request Params:", { days, interval }); // Log request params
-
-        const response = await axios.get(
-          `https://api.coingecko.com/api/v3/coins/${tokenId}/market_chart`,
-          {
-            params: {
-              vs_currency: "usd",
-              days: days,
-              interval: interval,
-            },
-          }
-        );
-
-        console.log("Chart API Response:", response.data); // Log chart data
+        const data = await coinGeckoService.getMarketChart(tokenId, {
+          vs_currency: "usd",
+          days: config.days,
+          interval: config.interval,
+        });
 
         if (chartInstance.current) {
           chartInstance.current.destroy();
         }
 
         const ctx = chartRef.current.getContext("2d");
-        const prices = response.data.prices;
+        const prices = data.prices;
 
         // Format dates based on timeFrame
         const formatDate = (timestamp) => {
           const date = new Date(timestamp);
-          if (timeFrame.toLowerCase() === "hour") {
-            return date.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-          } else if (timeFrame.toLowerCase() === "day") {
-            return date.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-          } else {
-            return date.toLocaleDateString();
+          switch (timeFrame.toLowerCase()) {
+            case "hour":
+              return date.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+            case "day":
+              return date.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+            case "week":
+              return date.toLocaleDateString([], { weekday: "short" });
+            case "month":
+              return date.toLocaleDateString([], {
+                month: "short",
+                day: "numeric",
+              });
+            case "year":
+              return date.toLocaleDateString([], {
+                month: "short",
+                year: "2-digit",
+              });
+            default:
+              return date.toLocaleDateString();
           }
         };
 
