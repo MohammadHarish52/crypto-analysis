@@ -82,9 +82,27 @@ const SignalsList = ({ timeFrame }) => {
   // Mock data - replace with your actual API call
   useEffect(() => {
     const mockSignals = [
-      { symbol: "BTC", risk: 4, marketCap: "$1.2B", time: "15m ago" },
-      { symbol: "ETH", risk: 3, marketCap: "$800M", time: "1h ago" },
-      { symbol: "SOL", risk: 5, marketCap: "$400M", time: "2h ago" },
+      {
+        symbol: "BTC",
+        risk: 4,
+        marketCap: "$1.2B",
+        time: "15m ago",
+        price: "$102000.80",
+      },
+      {
+        symbol: "ETH",
+        risk: 3,
+        marketCap: "$800M",
+        time: "1h ago",
+        price: "$3200.00",
+      },
+      {
+        symbol: "SOL",
+        risk: 5,
+        marketCap: "$400M",
+        time: "2h ago",
+        price: "$240.00",
+      },
     ];
     setSignals(mockSignals);
   }, [timeFrame]);
@@ -184,7 +202,7 @@ const SignalsList = ({ timeFrame }) => {
                   }}
                 >
                   Risk: <strong>{signal.risk}/100</strong> Market Cap:{" "}
-                  <strong>${signal.marketCap}</strong>
+                  <strong>{signal.marketCap}</strong>
                 </Typography>
               </Box>
 
