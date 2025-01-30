@@ -130,7 +130,7 @@ const Navbar = ({ onMarketCapRangeChange, onToggleSidebar }) => {
               <span
                 style={{ color: "white", fontSize: "20px", fontWeight: 600 }}
               >
-                Coinchart.fun
+                Eth.Signals
               </span>
             )}
           </Logo>

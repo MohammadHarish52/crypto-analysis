@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Chart } from "chart.js/auto";
 import PropTypes from "prop-types";
 import { styled } from "@mui/material/styles";
-import { Box, CircularProgress } from "@mui/material";
+import { Box, CircularProgress, Typography } from "@mui/material";
 import { coinGeckoService } from "../services/coinGeckoService";
 
 const ChartContainer = styled("div")({
@@ -36,7 +36,6 @@ const TokenPriceChart = ({ tokenId, timeFrame }) => {
       setError(null);
 
       try {
-        // Map timeframe to days and interval
         const timeFrameConfig = {
           hour: { days: 1, interval: "minutely" },
           day: { days: 1, interval: "hourly" },
@@ -63,7 +62,6 @@ const TokenPriceChart = ({ tokenId, timeFrame }) => {
         const ctx = chartRef.current.getContext("2d");
         const prices = data.prices;
 
-        // Format dates based on timeFrame
         const formatDate = (timestamp) => {
           const date = new Date(timestamp);
           switch (timeFrame.toLowerCase()) {
@@ -169,7 +167,7 @@ const TokenPriceChart = ({ tokenId, timeFrame }) => {
         setLoading(false);
       } catch (error) {
         console.error("Error fetching price data:", error);
-        setError(error);
+        setError("Error loading chart data");
         setLoading(false);
       }
     };
@@ -183,7 +181,7 @@ const TokenPriceChart = ({ tokenId, timeFrame }) => {
     };
   }, [tokenId, timeFrame]);
 
-  if (error) return <div>Error loading chart data</div>;
+  if (error) return <Typography sx={{ color: "white" }}>{error}</Typography>;
 
   return (
     <ChartContainer>
