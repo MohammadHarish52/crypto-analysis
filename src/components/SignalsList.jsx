@@ -192,7 +192,7 @@ const SignalsList = ({ timeFrame }) => {
                     mt: 1,
                   }}
                 >
-                  ${signal.price}
+                  {signal.price}
                 </Typography>
                 <Typography
                   variant="body2"
