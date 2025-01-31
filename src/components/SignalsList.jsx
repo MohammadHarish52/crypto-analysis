@@ -4,6 +4,9 @@ import { styled } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { cacheService } from "../services/cacheService";
+
+const MAX_NOTIFICATIONS = 25;
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(2.5),
@@ -68,6 +71,21 @@ const TopSection = styled(Box)(({ theme }) => ({
   gap: "12px",
 }));
 
+const SignalCard = styled(Box)(({ riskLevel }) => ({
+  marginBottom: "16px",
+  padding: "16px",
+  width: "100%",
+  backgroundColor: riskLevel <= 30 ? "#004400" : "#440000",
+  borderRadius: "16px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  transition: "transform 0.2s ease",
+  "&:hover": {
+    transform: "translateY(-2px)",
+  },
+}));
+
 const getRiskColor = (risk) => {
   if (risk <= 3) return "#4ADE80"; // Green for low risk
   if (risk <= 6) return "#F59E0B"; // Yellow for medium risk
@@ -79,33 +97,68 @@ const SignalsList = ({ timeFrame }) => {
   const theme = useTheme();
   const { publicKey, connected } = useWallet();
 
-  // Mock data - replace with your actual API call
+  const calculateRiskLevel = (token) => {
+    // Calculate risk based on various factors
+    const priceChange = token.price_change_percentage_24h || 0;
+    const marketCap = token.market_cap || 0;
+    const volume = token.total_volume || 0;
+
+    let risk = 50; // Base risk
+
+    // Adjust risk based on price change
+    if (Math.abs(priceChange) > 20) risk += 20;
+    else if (Math.abs(priceChange) > 10) risk += 10;
+
+    // Adjust risk based on market cap
+    if (marketCap > 1000000000) risk -= 15; // Lower risk for high market cap
+    if (marketCap < 100000000) risk += 15; // Higher risk for low market cap
+
+    // Adjust risk based on volume
+    if (volume > marketCap * 0.1) risk -= 10; // Good volume
+    if (volume < marketCap * 0.01) risk += 10; // Low volume
+
+    return Math.min(Math.max(risk, 0), 100); // Ensure risk is between 0 and 100
+  };
+
+  const generateSignals = () => {
+    const storedData = cacheService.get("bubbleData");
+    if (!storedData) return [];
+
+    return storedData
+      .map((token) => ({
+        ...token,
+        riskLevel: calculateRiskLevel(token),
+        timestamp: Date.now(),
+      }))
+      .sort((a, b) => {
+        // Sort by a combination of risk level and price change
+        const aScore =
+          (100 - a.riskLevel) * Math.abs(a.price_change_percentage_24h || 0);
+        const bScore =
+          (100 - b.riskLevel) * Math.abs(b.price_change_percentage_24h || 0);
+        return bScore - aScore;
+      })
+      .slice(0, MAX_NOTIFICATIONS);
+  };
+
   useEffect(() => {
-    const mockSignals = [
-      {
-        symbol: "BTC",
-        risk: 4,
-        marketCap: "$1.2B",
-        time: "15m ago",
-        price: "$102000.80",
-      },
-      {
-        symbol: "ETH",
-        risk: 3,
-        marketCap: "$800M",
-        time: "1h ago",
-        price: "$3200.00",
-      },
-      {
-        symbol: "SOL",
-        risk: 5,
-        marketCap: "$400M",
-        time: "2h ago",
-        price: "$240.00",
-      },
-    ];
-    setSignals(mockSignals);
+    const newSignals = generateSignals();
+    setSignals(newSignals);
+
+    // Refresh signals every 2 minutes
+    const interval = setInterval(() => {
+      const updatedSignals = generateSignals();
+      setSignals(updatedSignals);
+    }, 2 * 60 * 1000);
+
+    return () => clearInterval(interval);
   }, [timeFrame]);
+
+  const formatMarketCap = (marketCap) => {
+    if (marketCap >= 1e9) return `$${(marketCap / 1e9).toFixed(2)}B`;
+    if (marketCap >= 1e6) return `$${(marketCap / 1e6).toFixed(2)}M`;
+    return `$${marketCap.toFixed(2)}`;
+  };
 
   return (
     <SidebarContainer>
@@ -144,121 +197,67 @@ const SignalsList = ({ timeFrame }) => {
             mb: 3,
             fontWeight: 600,
             fontSize: "1.5rem",
+            color: "#FFFFFF",
           }}
         >
           Latest Buy Signals
         </Typography>
 
-        {/* Signals Cards */}
-        <Box sx={{ mb: 4 }}>
-          {signals.map((signal, index) => (
-            <Box
-              key={index}
-              sx={{
-                mb: 2,
-                p: 2,
-                width: "100%",
-                backgroundColor: "#003300",
-                borderRadius: 2,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              {/* Left Section */}
-              <Box>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: "#FFFFFF",
-                    fontWeight: 600,
-                  }}
-                >
-                  ${signal.symbol}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "rgba(255, 255, 255, 0.7)",
-                  }}
-                >
-                  {signal.time}
-                </Typography>
-                <Typography
-                  variant="h5"
-                  sx={{
-                    color: "#FFFFFF",
-                    fontWeight: 700,
-                    mt: 1,
-                  }}
-                >
-                  {signal.price}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "rgba(255, 255, 255, 0.8)",
-                    mt: 0.5,
-                  }}
-                >
-                  Risk: <strong>{signal.risk}/100</strong> Market Cap:{" "}
-                  <strong>{signal.marketCap}</strong>
-                </Typography>
-              </Box>
-
-              {/* Right Section */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 24,
-                  height: 24,
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
-                  borderRadius: "50%",
-                }}
+        {signals.map((signal, index) => (
+          <SignalCard
+            key={`${signal.id}-${signal.timestamp}`}
+            riskLevel={signal.riskLevel}
+          >
+            <Box>
+              <Typography
+                variant="h6"
+                sx={{ color: "#FFFFFF", fontWeight: 600 }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                  stroke="white"
-                  width="16"
-                  height="16"
+                ${signal.symbol.toUpperCase()}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ color: "rgba(255, 255, 255, 0.7)" }}
+              >
+                {new Date(signal.timestamp).toLocaleTimeString()}
+              </Typography>
+              <Typography
+                variant="h5"
+                sx={{ color: "#FFFFFF", fontWeight: 700, mt: 1 }}
+              >
+                ${signal.current_price.toFixed(2)}
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ color: "rgba(255, 255, 255, 0.8)", mt: 0.5 }}
+              >
+                Risk: <strong>{signal.riskLevel}/100</strong>
+                <br />
+                Market Cap:{" "}
+                <strong>{formatMarketCap(signal.market_cap)}</strong>
+                <br />
+                24h Change:{" "}
+                <strong
+                  style={{
+                    color:
+                      signal.price_change_percentage_24h >= 0
+                        ? "#4ADE80"
+                        : "#EF4444",
+                  }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </Box>
+                  {signal.price_change_percentage_24h.toFixed(2)}%
+                </strong>
+              </Typography>
             </Box>
-          ))}
-        </Box>
 
-        {/* Premium Section */}
-        <Box
-          sx={{
-            mt: "auto",
-            backgroundColor: "#19202F",
-            borderRadius: 2,
-            p: 3,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Box
               sx={{
                 display: "flex",
-                justifyContent: "center",
                 alignItems: "center",
+                justifyContent: "center",
                 width: 24,
                 height: 24,
-                backgroundColor: "#2563EB",
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
                 borderRadius: "50%",
               }}
             >
@@ -274,45 +273,12 @@ const SignalsList = ({ timeFrame }) => {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="M3 10h11M9 21V3m9 4l3 3-3 3"
+                  d="M9 5l7 7-7 7"
                 />
               </svg>
             </Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, color: "#FFFFFF" }}>
-              Premium Signals
-            </Typography>
-          </Box>
-          <Typography variant="body2" sx={{ color: "#9CA3AF" }}>
-            Get early access to all buy signals and advanced analytics
-          </Typography>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: "#FFFFFF" }}>
-            $49
-            <Typography
-              component="span"
-              variant="body2"
-              sx={{ color: "#9CA3AF" }}
-            >
-              /month
-            </Typography>
-          </Typography>
-          <Button
-            variant="contained"
-            fullWidth
-            sx={{
-              backgroundColor: "#2563EB",
-              color: "white",
-              py: 1.5,
-              borderRadius: 2,
-              textTransform: "none",
-              fontWeight: 600,
-              "&:hover": {
-                backgroundColor: "#1D4ED8",
-              },
-            }}
-          >
-            Subscribe Now
-          </Button>
-        </Box>
+          </SignalCard>
+        ))}
       </Box>
     </SidebarContainer>
   );
