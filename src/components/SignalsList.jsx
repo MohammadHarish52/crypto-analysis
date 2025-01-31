@@ -1,12 +1,22 @@
 import { useEffect, useState } from "react";
-import { Paper, Typography, Button, Box, Chip } from "@mui/material";
+import {
+  Paper,
+  Typography,
+  Button,
+  Box,
+  Chip,
+  CircularProgress,
+} from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { cacheService } from "../services/cacheService";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const MAX_NOTIFICATIONS = 25;
+const NOTIFICATION_DELAY = 1000; // 1 second delay between notifications
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(2.5),
@@ -86,6 +96,13 @@ const SignalCard = styled(Box)(({ riskLevel }) => ({
   },
 }));
 
+const LoadingContainer = styled(Box)({
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  minHeight: "200px",
+});
+
 const getRiskColor = (risk) => {
   if (risk <= 3) return "#4ADE80"; // Green for low risk
   if (risk <= 6) return "#F59E0B"; // Yellow for medium risk
@@ -94,6 +111,7 @@ const getRiskColor = (risk) => {
 
 const SignalsList = ({ timeFrame }) => {
   const [signals, setSignals] = useState([]);
+  const [loading, setLoading] = useState(true);
   const theme = useTheme();
   const { publicKey, connected } = useWallet();
 
@@ -120,6 +138,50 @@ const SignalsList = ({ timeFrame }) => {
     return Math.min(Math.max(risk, 0), 100); // Ensure risk is between 0 and 100
   };
 
+  const notifyNewSignals = async (newSignals) => {
+    for (const signal of newSignals) {
+      const isLowRisk = signal.riskLevel <= 30;
+
+      // Wait for previous toast to be dismissed
+      await new Promise((resolve) => {
+        const toastId = toast(
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {isLowRisk ? "🚀 Buy Signal" : "⚠️ High Risk Signal"}
+            </Typography>
+            <Typography variant="body2">
+              ${signal.symbol.toUpperCase()} at $
+              {signal.current_price.toFixed(2)}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ color: "rgba(255, 255, 255, 0.7)" }}
+            >
+              Risk Level: {signal.riskLevel}/100
+            </Typography>
+          </Box>,
+          {
+            position: "bottom-right",
+            autoClose: 3000, // Reduced to 3 seconds
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: "dark",
+            style: {
+              background: isLowRisk ? "#004400" : "#440000",
+              color: "white",
+            },
+            onClose: () => {
+              setTimeout(resolve, 500); // Wait 500ms after toast closes before showing next
+            },
+          }
+        );
+      });
+    }
+  };
+
   const generateSignals = () => {
     const storedData = cacheService.get("bubbleData");
     if (!storedData) return [];
@@ -131,25 +193,51 @@ const SignalsList = ({ timeFrame }) => {
         timestamp: Date.now(),
       }))
       .sort((a, b) => {
-        // Sort by a combination of risk level and price change
         const aScore =
-          (100 - a.riskLevel) * Math.abs(a.price_change_percentage_24h || 0);
+          (100 - a.riskLevel) *
+          Math.abs(a.market_cap_change_percentage_24h || 0);
         const bScore =
-          (100 - b.riskLevel) * Math.abs(b.price_change_percentage_24h || 0);
+          (100 - b.riskLevel) *
+          Math.abs(b.market_cap_change_percentage_24h || 0);
         return bScore - aScore;
       })
       .slice(0, MAX_NOTIFICATIONS);
   };
 
   useEffect(() => {
-    const newSignals = generateSignals();
-    setSignals(newSignals);
+    const fetchSignals = async () => {
+      setLoading(true);
+      const newSignals = generateSignals();
 
-    // Refresh signals every 2 minutes
-    const interval = setInterval(() => {
-      const updatedSignals = generateSignals();
-      setSignals(updatedSignals);
-    }, 2 * 60 * 1000);
+      if (signals.length === 0) {
+        // Initial load - just set the signals
+        setSignals(newSignals);
+      } else {
+        // Compare with previous signals to find new ones
+        const previousSignalIds = new Set(signals.map((s) => s.id));
+        const newSignalEntries = newSignals.filter(
+          (s) => !previousSignalIds.has(s.id)
+        );
+
+        // Notify new signals sequentially
+        if (newSignalEntries.length > 0) {
+          await notifyNewSignals(newSignalEntries);
+
+          // Merge new signals with existing ones and maintain max limit
+          setSignals((prevSignals) => {
+            const updatedSignals = [...newSignalEntries, ...prevSignals];
+            return updatedSignals.slice(0, MAX_NOTIFICATIONS);
+          });
+        }
+      }
+      setLoading(false);
+    };
+
+    // Initial fetch
+    fetchSignals();
+
+    // Refresh signals every 1 minute instead of 2
+    const interval = setInterval(fetchSignals, 60 * 1000);
 
     return () => clearInterval(interval);
   }, [timeFrame]);
@@ -203,83 +291,112 @@ const SignalsList = ({ timeFrame }) => {
           Latest Buy Signals
         </Typography>
 
-        {signals.map((signal, index) => (
-          <SignalCard
-            key={`${signal.id}-${signal.timestamp}`}
-            riskLevel={signal.riskLevel}
+        {loading ? (
+          <LoadingContainer>
+            <CircularProgress sx={{ color: "#2563EB" }} />
+          </LoadingContainer>
+        ) : signals.length === 0 ? (
+          <Typography
+            sx={{
+              color: "rgba(255, 255, 255, 0.6)",
+              textAlign: "center",
+              mt: 4,
+            }}
           >
-            <Box>
-              <Typography
-                variant="h6"
-                sx={{ color: "#FFFFFF", fontWeight: 600 }}
-              >
-                ${signal.symbol.toUpperCase()}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{ color: "rgba(255, 255, 255, 0.7)" }}
-              >
-                {new Date(signal.timestamp).toLocaleTimeString()}
-              </Typography>
-              <Typography
-                variant="h5"
-                sx={{ color: "#FFFFFF", fontWeight: 700, mt: 1 }}
-              >
-                ${signal.current_price.toFixed(2)}
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: "rgba(255, 255, 255, 0.8)", mt: 0.5 }}
-              >
-                Risk: <strong>{signal.riskLevel}/100</strong>
-                <br />
-                Market Cap:{" "}
-                <strong>{formatMarketCap(signal.market_cap)}</strong>
-                <br />
-                24h Change:{" "}
-                <strong
-                  style={{
-                    color:
-                      signal.price_change_percentage_24h >= 0
-                        ? "#4ADE80"
-                        : "#EF4444",
-                  }}
-                >
-                  {signal.price_change_percentage_24h.toFixed(2)}%
-                </strong>
-              </Typography>
-            </Box>
-
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 24,
-                height: 24,
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-                borderRadius: "50%",
-              }}
+            No signals available at the moment
+          </Typography>
+        ) : (
+          signals.map((signal, index) => (
+            <SignalCard
+              key={`${signal.id}-${signal.timestamp}`}
+              riskLevel={signal.riskLevel}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="2"
-                stroke="white"
-                width="16"
-                height="16"
+              <Box>
+                <Typography
+                  variant="h6"
+                  sx={{ color: "#FFFFFF", fontWeight: 600 }}
+                >
+                  ${signal.symbol.toUpperCase()}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{ color: "rgba(255, 255, 255, 0.7)" }}
+                >
+                  {new Date(signal.timestamp).toLocaleTimeString()}
+                </Typography>
+                <Typography
+                  variant="h5"
+                  sx={{ color: "#FFFFFF", fontWeight: 700, mt: 1 }}
+                >
+                  ${signal.current_price.toFixed(2)}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ color: "rgba(255, 255, 255, 0.8)", mt: 0.5 }}
+                >
+                  Risk: <strong>{signal.riskLevel}/100</strong>
+                  <br />
+                  Market Cap:{" "}
+                  <strong>{formatMarketCap(signal.market_cap)}</strong>
+                  <br />
+                  24h Change:{" "}
+                  <strong
+                    style={{
+                      color:
+                        signal.price_change_percentage_24h >= 0
+                          ? "#4ADE80"
+                          : "#EF4444",
+                    }}
+                  >
+                    {signal.price_change_percentage_24h.toFixed(2)}%
+                  </strong>
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 24,
+                  height: 24,
+                  backgroundColor: "rgba(255, 255, 255, 0.1)",
+                  borderRadius: "50%",
+                }}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </Box>
-          </SignalCard>
-        ))}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                  stroke="white"
+                  width="16"
+                  height="16"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </Box>
+            </SignalCard>
+          ))
+        )}
       </Box>
+
+      <ToastContainer
+        position="bottom-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
     </SidebarContainer>
   );
 };

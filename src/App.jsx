@@ -22,6 +22,8 @@ import "@fontsource/poppins/700.css";
 import "./App.css";
 import { AppWalletProvider } from "./components/AppWalletProvider";
 import { FaFilter } from "react-icons/fa";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   const [timeFrame, setTimeFrame] = useState("short-term");
@@ -370,7 +372,6 @@ function App() {
             <Box
               sx={{
                 flex: 1,
-                width: "100%",
               }}
             >
               <BubbleChart
@@ -396,6 +397,7 @@ function App() {
             </Box>
           </Box>
         </Box>
+        <ToastContainer />
       </ThemeProvider>
     </AppWalletProvider>
   );

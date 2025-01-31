@@ -82,17 +82,24 @@ const BubbleChart = ({ marketCapRange, searchQuery }) => {
 
     chartRef.current.height = rows * spacing + spacing;
 
+    const calculateBubbleSize = (marketCapChange) => {
+      const absChange = Math.abs(marketCapChange);
+      const minSize = spacing * 0.6;
+      const maxSize = spacing * 1.8;
+
+      const scale = Math.pow(Math.min(absChange / 50, 1), 0.7);
+      return minSize + (maxSize - minSize) * scale;
+    };
+
     const bubbleData = tokens.map((token, index) => {
       const column = index % COLUMNS;
       const row = Math.floor(index / COLUMNS);
+      const marketCapChange = token.market_cap_change_percentage_24h || 0;
 
       return {
         x: column * spacing + spacing / 2,
         y: row * spacing + spacing / 2,
-        r: Math.min(
-          Math.abs(token.price_change_percentage_24h) * 1.5 + 25,
-          spacing / 3
-        ),
+        r: calculateBubbleSize(marketCapChange) / 2,
         token,
       };
     });
@@ -104,23 +111,23 @@ const BubbleChart = ({ marketCapRange, searchQuery }) => {
           {
             data: bubbleData,
             backgroundColor: bubbleData.map((bubble) =>
-              bubble.token.price_change_percentage_24h >= 0
+              bubble.token.market_cap_change_percentage_24h >= 0
                 ? "rgba(0, 255, 0, 0.3)"
                 : "rgba(255, 0, 0, 0.3)"
             ),
             borderColor: bubbleData.map((bubble) =>
-              bubble.token.price_change_percentage_24h >= 0
+              bubble.token.market_cap_change_percentage_24h >= 0
                 ? "rgba(0, 255, 0, 0.8)"
                 : "rgba(255, 0, 0, 0.8)"
             ),
             borderWidth: 2,
             hoverBackgroundColor: bubbleData.map((bubble) =>
-              bubble.token.price_change_percentage_24h >= 0
+              bubble.token.market_cap_change_percentage_24h >= 0
                 ? "rgba(0, 255, 0, 0.4)"
                 : "rgba(255, 0, 0, 0.4)"
             ),
             hoverBorderColor: bubbleData.map((bubble) =>
-              bubble.token.price_change_percentage_24h >= 0
+              bubble.token.market_cap_change_percentage_24h >= 0
                 ? "rgba(0, 255, 0, 1)"
                 : "rgba(255, 0, 0, 1)"
             ),
@@ -186,35 +193,40 @@ const BubbleChart = ({ marketCapRange, searchQuery }) => {
         const x = chartInstance.current.scales.x.getPixelForValue(bubble.x);
         const y = chartInstance.current.scales.y.getPixelForValue(bubble.y);
         const logo = logoRefs.current.get(bubble.token.symbol);
+        const bubbleRadius = bubble.r;
 
         if (logo) {
+          const logoSize = Math.min(bubbleRadius * 1.5, 45);
+
           ctx.save();
           ctx.beginPath();
-          ctx.arc(x, y, 15, 0, Math.PI * 2);
+          ctx.arc(x, y, logoSize / 2, 0, Math.PI * 2);
           ctx.clip();
-          ctx.drawImage(logo, x - 15, y - 15, 30, 30);
+          ctx.drawImage(
+            logo,
+            x - logoSize / 2,
+            y - logoSize / 2,
+            logoSize,
+            logoSize
+          );
           ctx.restore();
 
-          const percentage = `${bubble.token.price_change_percentage_24h.toFixed(
-            1
-          )}%`;
+          const percentage = `${(
+            bubble.token.market_cap_change_percentage_24h || 0
+          ).toFixed(1)}%`;
           ctx.save();
           ctx.font = "bold 12px Arial";
 
           const textWidth = ctx.measureText(percentage).width;
+          const textY = y + bubbleRadius + 15;
 
           ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-          ctx.fillRect(
-            x - textWidth / 2 - 4,
-            y + bubble.r + 5,
-            textWidth + 8,
-            20
-          );
+          ctx.fillRect(x - textWidth / 2 - 4, textY - 8, textWidth + 8, 20);
 
           ctx.fillStyle = "white";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(percentage, x, y + bubble.r + 15);
+          ctx.fillText(percentage, x, textY);
           ctx.restore();
         }
       });
@@ -234,11 +246,6 @@ const BubbleChart = ({ marketCapRange, searchQuery }) => {
       }
     };
   }, [tokens, loading]);
-
-  const handleBubbleClick = (token) => {
-    setSelectedToken(token);
-    setModalOpen(true);
-  };
 
   return (
     <Box sx={{ width: "100%", overflow: "hidden" }}>

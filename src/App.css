@@ -10,7 +10,6 @@
   scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05); /* Firefox */
 }
 
-
 /* Chrome, Edge, and Safari */
 *::-webkit-scrollbar {
   width: 10px;
@@ -78,4 +77,18 @@ body {
 
 .read-the-docs {
   color: #888;
+}
+
+/* Add these styles for better toast appearance */
+.Toastify__toast {
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.Toastify__toast-body {
+  font-family: "Poppins", sans-serif;
+}
+
+.Toastify__progress-bar {
+  background: rgba(255, 255, 255, 0.2);
 }
